@@ -686,7 +686,21 @@ pub fn default_provide(providers: &mut ty::query::Providers<'_>) {
     rustc_codegen_utils::provide(providers);
     rustc_codegen_ssa::provide(providers);
     providers.sire_equality_check = |tcx, (a, b)| {
-        // invoke sire here
+        use rustc::mir::interpret::ConstValue;
+
+        let mut evaluator = sire::eval::Evaluator::from_tcx(tcx);
+
+        if let (ConstValue::Unevaluated(def_id_a, _ ), ConstValue::Unevaluated(def_id_b, _)) = (a.val, b.val) {
+            info!("sire: Both of the sides are unevaluated");
+            let sir_a = evaluator.eval_mir(def_id_a);
+            let sir_b = evaluator.eval_mir(def_id_b);
+            info!("a = {:?}", sir_a);
+            info!("b = {:?}", sir_b);
+        } else {
+            warn!("sire: One of the sides is evaluated");
+        }
+
+        false
     };
 }
 
