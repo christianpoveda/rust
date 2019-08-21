@@ -152,6 +152,15 @@ impl<'tcx> Key for (&'tcx ty::Const<'tcx>, mir::Field) {
     }
 }
 
+impl<'tcx> Key for (&'tcx ty::Const<'tcx>, &'tcx ty::Const<'tcx>) {
+    fn query_crate(&self) -> CrateNum {
+        LOCAL_CRATE
+    }
+    fn default_span(&self, _: TyCtxt<'_>) -> Span {
+        DUMMY_SP
+    }
+}
+
 impl<'tcx> Key for ty::PolyTraitRef<'tcx> {
     fn query_crate(&self) -> CrateNum {
         self.def_id().krate

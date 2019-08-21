@@ -476,6 +476,15 @@ rustc_queries! {
             }
         }
 
+        /// Equates two constants via SAT solving SIRE results
+        query sire_equality_check(key: (&'tcx ty::Const<'tcx>, &'tcx ty::Const<'tcx>)) -> bool {
+            no_force
+            desc { |tcx|
+                "sire equality checking `{:?}` vs `{:?}`",
+                key.0.val, key.1.val,
+            }
+        }
+
         /// Results of evaluating const items or constants embedded in
         /// other items (such as enum variant explicit discriminants).
         ///

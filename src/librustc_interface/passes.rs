@@ -685,6 +685,9 @@ pub fn default_provide(providers: &mut ty::query::Providers<'_>) {
     rustc_lint::provide(providers);
     rustc_codegen_utils::provide(providers);
     rustc_codegen_ssa::provide(providers);
+    providers.sire_equality_check = |tcx, (a, b)| {
+        // invoke sire here
+    };
 }
 
 pub fn default_provide_extern(providers: &mut ty::query::Providers<'_>) {

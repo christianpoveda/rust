@@ -515,6 +515,10 @@ pub fn super_relate_consts<R: TypeRelation<'tcx>>(
     // 3. sat solve result equality
     // 4. return the appropriate equality result here
 
+    if tcx.sire_equality_check((a, b)) {
+        return Ok(a);
+    }
+
     let eagerly_eval = |x: &'tcx ty::Const<'tcx>| {
         if !x.val.has_local_value() {
             return x.eval(tcx, relation.param_env()).val;
