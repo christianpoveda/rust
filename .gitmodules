@@ -44,3 +44,6 @@
 [submodule "src/doc/embedded-book"]
 	path = src/doc/embedded-book
 	url = https://github.com/rust-embedded/book.git
+[submodule "sire"]
+	path = src/sire
+	url = git@github.com:christianpoveda/sire
