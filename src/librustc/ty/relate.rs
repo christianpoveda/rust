@@ -509,6 +509,12 @@ pub fn super_relate_consts<R: TypeRelation<'tcx>>(
 ) -> RelateResult<'tcx, &'tcx ty::Const<'tcx>> {
     let tcx = relation.tcx();
 
+    // 1. add a check whether either side is unevaluated and its mir::Body contains Param
+    //     * use a visitor for this check
+    // 2. run sire on both sides
+    // 3. sat solve result equality
+    // 4. return the appropriate equality result here
+
     let eagerly_eval = |x: &'tcx ty::Const<'tcx>| {
         if !x.val.has_local_value() {
             return x.eval(tcx, relation.param_env()).val;
