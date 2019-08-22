@@ -687,20 +687,50 @@ pub fn default_provide(providers: &mut ty::query::Providers<'_>) {
     rustc_codegen_ssa::provide(providers);
     providers.sire_equality_check = |tcx, (a, b)| {
         use rustc::mir::interpret::ConstValue;
+        use sire::eval::Evaluator;
+        use sire_smt::{CheckResult, check_equality};
 
-        let mut evaluator = sire::eval::Evaluator::from_tcx(tcx);
+        let mut evaluator = Evaluator::from_tcx(tcx);
 
         if let (ConstValue::Unevaluated(def_id_a, _ ), ConstValue::Unevaluated(def_id_b, _)) = (a.val, b.val) {
-            info!("sire: Both of the sides are unevaluated");
-            let sir_a = evaluator.eval_mir(def_id_a);
-            let sir_b = evaluator.eval_mir(def_id_b);
-            info!("a = {:?}", sir_a);
-            info!("b = {:?}", sir_b);
+            info!("sire: Both sides are unevaluated");
+            if def_id_a == def_id_b {
+                info!("sire: DefIds are equal");
+                return true;
+            }
+            if let (Ok(sir_a), Ok(sir_b)) = (evaluator.eval_mir(def_id_a), evaluator.eval_mir(def_id_b)) {
+                match check_equality(&sir_a, &sir_b) {
+                    Ok(result) => match result {
+                        CheckResult::Sat => {
+                            info!("sire: Both sides are equal");
+                            true
+                        }
+                        CheckResult::Unsat => {
+                            info!("sire: Sides are not equal");
+                            false
+                        }
+                        CheckResult::Undecided => {
+                            warn!("sire: Could not decide if sides are equal");
+                            false
+                        }
+                        CheckResult::Unknown(output) => {
+                            warn!("sire: SMT returned an unknown output {}", output);
+                            false
+                        }
+                    }
+                    Err(error) => {
+                        warn!("sire: SMT failed {}", error);
+                        false
+                    }
+                }
+            } else {
+                warn!("sire: Cannot evaluate functions");
+                false
+            }
         } else {
             warn!("sire: One of the sides is evaluated");
+            false
         }
-
-        false
     };
 }
 
