@@ -25,7 +25,12 @@ fn eval_body_using_ecx<'mir, 'tcx>(
     cid: GlobalId<'tcx>,
     body: &'mir mir::Body<'tcx>,
 ) -> InterpResult<'tcx, MPlaceTy<'tcx>> {
-    debug!("eval_body_using_ecx: {:?}, {:?}", cid, ecx.param_env);
+    debug!("eval_body_using_ecx: {:?}, {:?}", cid, param_env);
+    use crate::rustc::ty::TypeFoldable;
+    if cid.instance.substs.is_empty() && body.needs_subst() {
+        info!("can't evaluate nonmonorphized constant");
+        throw_inval!(TooGeneric);
+    }
     let tcx = ecx.tcx.tcx;
     let layout = ecx.layout_of(body.return_ty().subst(tcx, cid.instance.substs))?;
     assert!(!layout.is_unsized());
