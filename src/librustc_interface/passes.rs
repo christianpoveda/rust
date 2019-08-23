@@ -692,43 +692,61 @@ pub fn default_provide(providers: &mut ty::query::Providers<'_>) {
 
         let mut evaluator = Evaluator::from_tcx(tcx);
 
-        if let (ConstValue::Unevaluated(def_id_a, _ ), ConstValue::Unevaluated(def_id_b, _)) = (a.val, b.val) {
-            info!("sire: Both sides are unevaluated");
-            if def_id_a == def_id_b {
-                info!("sire: DefIds are equal");
-                return true;
-            }
-            if let (Ok(sir_a), Ok(sir_b)) = (evaluator.eval_mir(def_id_a), evaluator.eval_mir(def_id_b)) {
-                match check_equality(&sir_a, &sir_b) {
-                    Ok(result) => match result {
-                        CheckResult::Sat => {
-                            info!("sire: Both sides are equal");
-                            true
-                        }
-                        CheckResult::Unsat => {
-                            info!("sire: Sides are not equal");
-                            false
-                        }
-                        CheckResult::Undecided => {
-                            warn!("sire: Could not decide if sides are equal");
-                            false
-                        }
-                        CheckResult::Unknown(output) => {
-                            warn!("sire: SMT returned an unknown output {}", output);
-                            false
+        if let ConstValue::Unevaluated(def_id_a, _ ) = a.val {
+            if let ConstValue::Unevaluated(def_id_b, _) = b.val {
+                info!("sire: Both sides are unevaluated");
+                if def_id_a == def_id_b {
+                    info!("sire: DefIds are equal");
+                    return true;
+                }
+                match evaluator.eval_mir(def_id_a) {
+                    Ok(sir_a) => {
+                        info!("sire: Evaluation was successful: {}", sir_a);
+                        match evaluator.eval_mir(def_id_b) {
+                            Ok(sir_b) => {
+                                info!("sire: Evaluation was successful: {}", sir_b);
+                                match check_equality(&sir_a, &sir_b) {
+                                    Ok(result) => match result {
+                                        CheckResult::Sat => {
+                                            info!("sire: Both sides are equal");
+                                            true
+                                        }
+                                        CheckResult::Unsat => {
+                                            info!("sire: Sides are not equal");
+                                            false
+                                        }
+                                        CheckResult::Undecided => {
+                                            warn!("sire: Could not decide if sides are equal");
+                                            false
+                                        }
+                                        CheckResult::Unknown(output) => {
+                                            warn!("sire: SMT returned an unknown output {}", output);
+                                            false
+                                        }
+                                    }
+                                    Err(error) => {
+                                        warn!("sire: SMT failed: {}", error);
+                                        false
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                warn!("sire: Evaluation failed: {}", e);
+                                false
+                            }
                         }
                     }
-                    Err(error) => {
-                        error!("sire: SMT failed {}", error);
+                    Err(e) => {
+                        error!("sire: Evaluation failed: {}", e);
                         false
                     }
                 }
             } else {
-                warn!("sire: Cannot evaluate functions");
+                warn!("sire: {} is evaluated", b);
                 false
             }
         } else {
-            warn!("sire: One of the sides is evaluated");
+            warn!("sire: {} is evaluated", a);
             false
         }
     };
