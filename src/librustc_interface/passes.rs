@@ -719,7 +719,7 @@ pub fn default_provide(providers: &mut ty::query::Providers<'_>) {
                         }
                     }
                     Err(error) => {
-                        warn!("sire: SMT failed {}", error);
+                        error!("sire: SMT failed {}", error);
                         false
                     }
                 }

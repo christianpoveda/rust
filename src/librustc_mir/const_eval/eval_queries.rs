@@ -25,7 +25,7 @@ fn eval_body_using_ecx<'mir, 'tcx>(
     cid: GlobalId<'tcx>,
     body: &'mir mir::Body<'tcx>,
 ) -> InterpResult<'tcx, MPlaceTy<'tcx>> {
-    debug!("eval_body_using_ecx: {:?}, {:?}", cid, param_env);
+    debug!("eval_body_using_ecx: {:?}", cid);
     use crate::rustc::ty::TypeFoldable;
     if cid.instance.substs.is_empty() && body.needs_subst() {
         info!("can't evaluate nonmonorphized constant");
