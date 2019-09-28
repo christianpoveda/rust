@@ -737,7 +737,7 @@ pub fn default_provide(providers: &mut ty::query::Providers<'_>) {
                         }
                     }
                     Err(e) => {
-                        error!("sire: Evaluation failed: {}", e);
+                        warn!("sire: Evaluation failed: {}", e);
                         false
                     }
                 }
