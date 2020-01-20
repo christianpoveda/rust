@@ -686,14 +686,14 @@ pub fn default_provide(providers: &mut ty::query::Providers<'_>) {
     rustc_codegen_utils::provide(providers);
     rustc_codegen_ssa::provide(providers);
     providers.sire_equality_check = |tcx, (a, b)| {
-        use rustc::mir::interpret::ConstValue;
+        use rustc::ty::ConstKind;
         use sire::eval::Evaluator;
-        use sire_smt::{CheckResult, check_equality};
+        use sire_smt::{check_equality, CheckResult};
 
         let mut evaluator = Evaluator::from_tcx(tcx);
 
-        if let ConstValue::Unevaluated(def_id_a, _ ) = a.val {
-            if let ConstValue::Unevaluated(def_id_b, _) = b.val {
+        if let ConstKind::Unevaluated(def_id_a, _, _) = a.val {
+            if let ConstKind::Unevaluated(def_id_b, _, _) = b.val {
                 info!("sire: Both sides are unevaluated");
                 if def_id_a == def_id_b {
                     info!("sire: DefIds are equal");
@@ -720,10 +720,13 @@ pub fn default_provide(providers: &mut ty::query::Providers<'_>) {
                                             false
                                         }
                                         CheckResult::Unknown(output) => {
-                                            warn!("sire: SMT returned an unknown output {}", output);
+                                            warn!(
+                                                "sire: SMT returned an unknown output {}",
+                                                output
+                                            );
                                             false
                                         }
-                                    }
+                                    },
                                     Err(error) => {
                                         warn!("sire: SMT failed: {}", error);
                                         false

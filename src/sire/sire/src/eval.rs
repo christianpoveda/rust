@@ -1,6 +1,6 @@
 use rustc::mir::interpret::{ConstValue, InterpResult};
 use rustc::mir::*;
-use rustc::ty::{self, layout::Size, TyCtxt};
+use rustc::ty::{self, layout::Size, ConstKind, TyCtxt};
 use rustc::{err_unsup, err_unsup_format};
 use rustc_hir::def_id::DefId;
 
@@ -243,8 +243,8 @@ impl<'tcx> Evaluator<'tcx> {
         Ok(match operand {
             Operand::Move(Place { local, projection })
             | Operand::Copy(Place { local, projection }) => {
-                let expr = self.memory.get(base.into())?.clone();
-                if let box [.., ProjectionElem::Field(field, _)] = projection {
+                let expr = self.memory.get(&Place::from(*local))?.clone();
+                if let [.., ProjectionElem::Field(field, _)] = &***projection {
                     Expr::Projection(Box::new(expr), field.index())
                 } else {
                     expr
@@ -261,17 +261,15 @@ impl<'tcx> Evaluator<'tcx> {
                     },
 
                     _ => match constant.literal.val {
-                        ConstValue::Scalar(scalar) => Value::Const(
+                        ConstKind::Value(ConstValue::Scalar(scalar)) => Value::Const(
                             scalar.to_bits(Size::from_bits(ty.bits().unwrap() as u64))?,
                             ty,
                         ),
-                        ConstValue::Param(param) => {
+                        ConstKind::Param(param) => {
                             Value::ConstParam(Param(param.index as usize, ty))
                         }
                         val => {
-                            return Err(
-                                err_unsup_format!("Unsupported ConstValue: {:?}", val).into()
-                            );
+                            return Err(err_unsup_format!("Unsupported: {:?}", val).into());
                         }
                     },
                 })

@@ -1,9 +1,8 @@
 use std::collections::BTreeSet;
 
-use rustc::mir::interpret::ConstValue;
 use rustc::mir::visit::Visitor;
 use rustc::mir::*;
-use rustc::ty::{Const, ParamConst};
+use rustc::ty::{Const, ConstKind, ParamConst};
 
 use crate::eval::Evaluator;
 use crate::sir::Param;
@@ -15,9 +14,9 @@ pub struct CheckStorage {
 }
 
 impl<'tcx> CheckStorage {
-    pub fn run(body: &Body<'tcx>) -> (Vec<Local>, Vec<Local>) {
+    pub fn run(body: &BodyAndCache<'tcx>) -> (Vec<Local>, Vec<Local>) {
         let mut check = Self::default();
-        check.visit_body(body);
+        check.visit_body(body.unwrap_read_only());
         (check.live, check.dead)
     }
 }
@@ -38,9 +37,9 @@ pub struct ExtractParams<'tcx, 'eval> {
 }
 
 impl<'tcx, 'eval> ExtractParams<'tcx, 'eval> {
-    pub fn run(evaluator: &'eval Evaluator<'tcx>, body: &Body<'tcx>) -> Vec<Param> {
+    pub fn run(evaluator: &'eval Evaluator<'tcx>, body: &BodyAndCache<'tcx>) -> Vec<Param> {
         let mut extract = ExtractParams { params: Default::default(), evaluator };
-        extract.visit_body(body);
+        extract.visit_body(body.unwrap_read_only());
         extract.params.into_iter().collect()
     }
 }
@@ -49,7 +48,7 @@ impl<'tcx, 'eval> Visitor<'tcx> for ExtractParams<'tcx, 'eval> {
     fn visit_operand(&mut self, op: &Operand<'tcx>, _location: Location) {
         match op {
             Operand::Constant(box Constant {
-                literal: Const { ty, val: ConstValue::Param(ParamConst { index, .. }) },
+                literal: Const { ty, val: ConstKind::Param(ParamConst { index, .. }) },
                 ..
             }) => {
                 // FIXME: not all rust types are supported
@@ -66,9 +65,9 @@ pub struct CheckPanic {
 }
 
 impl<'tcx> CheckPanic {
-    pub fn run(body: &Body<'tcx>) -> bool {
+    pub fn run(body: &BodyAndCache<'tcx>) -> bool {
         let mut check = CheckPanic { panics: false };
-        check.visit_body(body);
+        check.visit_body(body.unwrap_read_only());
         check.panics
     }
 }

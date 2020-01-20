@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 rustc = {path = "../../librustc"}
+rustc_hir = {path = "../../librustc_hir"}
