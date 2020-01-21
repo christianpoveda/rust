@@ -1,16 +1,19 @@
 use std::cmp::Ordering;
 use std::fmt;
 
-pub use rustc::mir::BinOp;
 pub use rustc_hir::def_id::DefId;
+pub use rustc::mir::BinOp;
 
 pub use self::display::*;
 pub use self::ty::*;
+pub use self::visitor::*;
+pub use self::visitor_mut::*;
 
 mod display;
 mod optimize;
 mod ty;
 mod visitor;
+mod visitor_mut;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FuncDef {
@@ -50,8 +53,7 @@ pub enum Expr {
     Switch(Box<Expr>, Vec<Expr>, Vec<Expr>),
     Tuple(Vec<Expr>),
     Projection(Box<Expr>, usize),
-    Just(Box<Expr>),
-    Nothing(Ty),
+    Assert(Box<Expr>, Box<Expr>),
     Uninitialized,
 }
 

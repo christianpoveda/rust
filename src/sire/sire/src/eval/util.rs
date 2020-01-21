@@ -59,23 +59,3 @@ impl<'tcx, 'eval> Visitor<'tcx> for ExtractParams<'tcx, 'eval> {
         }
     }
 }
-
-pub struct CheckPanic {
-    panics: bool,
-}
-
-impl<'tcx> CheckPanic {
-    pub fn run(body: &BodyAndCache<'tcx>) -> bool {
-        let mut check = CheckPanic { panics: false };
-        check.visit_body(body.unwrap_read_only());
-        check.panics
-    }
-}
-
-impl<'tcx> Visitor<'tcx> for CheckPanic {
-    fn visit_terminator_kind(&mut self, kind: &TerminatorKind<'tcx>, _location: Location) {
-        if let TerminatorKind::Assert { .. } = kind {
-            self.panics = true;
-        }
-    }
-}
