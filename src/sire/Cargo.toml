@@ -1,0 +1,12 @@
+[package]
+name = "sire"
+version = "0.1.0"
+authors = ["Christian Poveda <git@christianpoveda.xyz>", "Oliver Scherer <oliver.schneider@kit.edu>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rustc = {path = "../librustc"}
+rustc_hir = {path = "../librustc_hir"}
+uuid = { version = "0.8", features = ["v4"] }

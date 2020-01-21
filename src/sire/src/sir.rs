@@ -7,6 +7,8 @@ pub use rustc::mir::BinOp;
 pub use self::display::*;
 pub use self::ty::*;
 pub use self::visitor::*;
+use uuid::Uuid;
+
 pub use self::visitor_mut::*;
 
 mod display;
@@ -15,16 +17,47 @@ mod ty;
 mod visitor;
 mod visitor_mut;
 
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum FuncId {
+    DefId(DefId),
+    AnonId(Uuid)
+}
+
+impl fmt::Debug for FuncId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            FuncId::DefId(def_id) => write!(f, "{:?}", def_id),
+            FuncId::AnonId(uuid) => write!(f, "{}", uuid),
+        }
+    }
+}
+
+impl From<Uuid> for FuncId {
+    fn from(uuid: Uuid) -> Self {
+        FuncId::AnonId(uuid)
+    }
+}
+
+impl From<DefId> for FuncId {
+    fn from(def_id: DefId) -> Self {
+        FuncId::DefId(def_id)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FuncDef {
-    pub def_id: DefId,
+    pub func_id: FuncId,
     pub body: Expr,
     pub ty: Ty,
 }
 
 impl FuncDef {
     pub fn is_recursive(&self) -> bool {
-        self.body.contains(&Expr::Value(Value::Function(self.def_id, self.ty.clone())))
+        if let FuncId::DefId(def_id) = self.func_id {
+            self.body.contains(&Expr::Value(Value::Function(def_id, self.ty.clone())))
+        } else {
+            false
+        }
     }
 }
 

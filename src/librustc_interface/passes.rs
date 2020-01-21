@@ -685,73 +685,8 @@ pub fn default_provide(providers: &mut ty::query::Providers<'_>) {
     rustc_lint::provide(providers);
     rustc_codegen_utils::provide(providers);
     rustc_codegen_ssa::provide(providers);
-    providers.sire_equality_check = |tcx, (a, b)| {
-        use rustc::ty::ConstKind;
-        use sire::eval::Evaluator;
-        use sire_smt::{check_equality, CheckResult};
-
-        let mut evaluator = Evaluator::from_tcx(tcx);
-
-        if let ConstKind::Unevaluated(def_id_a, _, _) = a.val {
-            if let ConstKind::Unevaluated(def_id_b, _, _) = b.val {
-                info!("sire: Both sides are unevaluated");
-                if def_id_a == def_id_b {
-                    info!("sire: DefIds are equal");
-                    return true;
-                }
-                match evaluator.eval_mir(def_id_a) {
-                    Ok(sir_a) => {
-                        info!("sire: Evaluation was successful: {}", sir_a);
-                        match evaluator.eval_mir(def_id_b) {
-                            Ok(sir_b) => {
-                                info!("sire: Evaluation was successful: {}", sir_b);
-                                match check_equality(&sir_a, &sir_b) {
-                                    Ok(result) => match result {
-                                        CheckResult::Sat => {
-                                            info!("sire: Both sides are equal");
-                                            true
-                                        }
-                                        CheckResult::Unsat => {
-                                            info!("sire: Sides are not equal");
-                                            false
-                                        }
-                                        CheckResult::Undecided => {
-                                            warn!("sire: Could not decide if sides are equal");
-                                            false
-                                        }
-                                        CheckResult::Unknown(output) => {
-                                            warn!(
-                                                "sire: SMT returned an unknown output {}",
-                                                output
-                                            );
-                                            false
-                                        }
-                                    },
-                                    Err(error) => {
-                                        bug!("sire: SMT failed: {}", error);
-                                        false
-                                    }
-                                }
-                            }
-                            Err(e) => {
-                                warn!("sire: Evaluation failed: {}", e);
-                                false
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        warn!("sire: Evaluation failed: {}", e);
-                        false
-                    }
-                }
-            } else {
-                warn!("sire: {} is evaluated", b);
-                false
-            }
-        } else {
-            warn!("sire: {} is evaluated", a);
-            false
-        }
+    providers.sire_equality_check = |_tcx, (_a, _b)| {
+        true
     };
 }
 

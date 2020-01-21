@@ -1,13 +1,14 @@
 [package]
-name = "sire-smt"
+name = "sire_z3"
 version = "0.1.0"
-authors = ["Christian Poveda <christianpoveda@protonmail.com>"]
+authors = ["Christian Poveda <git@christianpoveda.xyz>", "Oliver Scherer <oliver.schneider@kit.edu>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 sire = { path = "../sire" }
+z3 = "0.4.0"
 
 [dev-dependencies]
-rustc = {path = "../../librustc"}
+rustc = {path = "../librustc"}

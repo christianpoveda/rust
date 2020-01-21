@@ -1,6 +1,6 @@
 use rustc::mir::interpret::{ConstValue, InterpResult};
 use rustc::mir::*;
-use rustc::ty::{self, layout::Size, ConstKind, TyCtxt};
+use rustc::ty::{self, layout::Size, Const, ConstKind, TyCtxt};
 use rustc::{err_unsup, err_unsup_format};
 use rustc_hir::def_id::DefId;
 
@@ -26,7 +26,27 @@ impl<'tcx> Evaluator<'tcx> {
         Evaluator { location: Location::START, memory: Default::default(), def_id: None, tcx }
     }
 
-    pub fn eval_mir(&mut self, def_id: DefId) -> InterpResult<'tcx, FuncDef> {
+    pub fn eval_const(&mut self, constant: Const<'tcx>) -> InterpResult<'tcx, FuncDef> {
+        match constant.val {
+            ConstKind::Unevaluated(def_id, _, _) => self.eval_mir(def_id),
+            ConstKind::Value(_) => {
+                let ty = Self::transl_non_fn_ty(constant.ty).ok_or_else(|| {
+                    err_unsup_format!("Unsupported ty for ConstValue {:?}", constant.ty)
+                })?;
+                let value = Self::const_kind_to_value(constant.val, ty.clone())?;
+                Ok(FuncDef {
+                    func_id: uuid::Uuid::new_v4().into(),
+                    body: Expr::Value(value),
+                    ty: Ty::Func(vec![ty], Vec::new()),
+                })
+            }
+            val => {
+                Err(err_unsup_format!("Unsupported: {:?}", val).into())
+            }
+        }
+    }
+
+    fn eval_mir(&mut self, def_id: DefId) -> InterpResult<'tcx, FuncDef> {
         let mir = self.tcx.optimized_mir(def_id);
 
         if find_loop(mir).is_some() {
@@ -80,7 +100,7 @@ impl<'tcx> Evaluator<'tcx> {
         assert_eq!(args_ty[0], body.ty());
 
         if self.memory.is_empty() {
-            Ok(FuncDef { body, def_id, ty: Ty::Func(args_ty.clone(), params) })
+            Ok(FuncDef { body, func_id: def_id.into(), ty: Ty::Func(args_ty.clone(), params) })
         } else {
             Err(err_unsup_format!("Memory is not empty after execution").into())
         }
@@ -176,23 +196,11 @@ impl<'tcx> Evaluator<'tcx> {
                 self.location = Location::START;
                 Ok(false)
             }
-            // TerminatorKind::Assert { ref cond, ref expected, ref target, .. } => {
-            //     let cond_expr = self.eval_operand(cond)?;
-            //     let just_expr = Expr::Just(Box::new(self.fork_eval(*target)?));
-            //     let maybe_ty = just_expr.ty();
-            //
-            //     let nothing_expr = Expr::Nothing(maybe_ty);
-            //     let values_expr = vec![Expr::Value(Value::Const(0, Ty::Bool))];
-            //     let targets_expr = if *expected {
-            //         vec![nothing_expr, just_expr]
-            //     } else {
-            //         vec![just_expr, nothing_expr]
-            //     };
-            //     *self.memory.get_mut(&Place::return_place())? =
-            //         Expr::Switch(Box::new(cond_expr), values_expr, targets_expr);
-            //     self.location = Location::START;
-            //     Ok(false)
-            // }
+            // FIXME: Handle asserts properly
+            TerminatorKind::Assert { ref target, .. } => {
+                self.location = target.start_location();
+                Ok(true)
+            }
             ref tk => Err(err_unsup_format!("TerminatorKind {:?} is not supported", tk).into()),
         }
     }
@@ -248,32 +256,41 @@ impl<'tcx> Evaluator<'tcx> {
                         _ => unreachable!(),
                     },
 
-                    _ => match constant.literal.val {
-                        ConstKind::Value(ConstValue::Scalar(scalar)) => Value::Const(
-                            scalar.to_bits(Size::from_bits(ty.bits().unwrap() as u64))?,
-                            ty,
-                        ),
-                        ConstKind::Param(param) => {
-                            Value::ConstParam(Param(param.index as usize, ty))
-                        }
-                        val => {
-                            return Err(err_unsup_format!("Unsupported: {:?}", val).into());
-                        }
-                    },
+                    _ => Self::const_kind_to_value(constant.literal.val, ty)?,
                 })
             }
         })
     }
+
+    fn const_kind_to_value(const_kind: ConstKind<'tcx>, ty: Ty) -> InterpResult<'tcx, Value> {
+        match const_kind {
+            ConstKind::Value(ConstValue::Scalar(scalar)) => {
+                Ok(Value::Const(scalar.to_bits(Size::from_bits(ty.bits().unwrap() as u64))?, ty))
+            }
+            ConstKind::Param(param) => Ok(Value::ConstParam(Param(param.index as usize, ty))),
+            val => {
+                Err(err_unsup_format!("Unsupported: {:?}", val).into())
+            }
+        }
+    }
+
+    #[allow(rustc::usage_of_qualified_ty)]
+    fn transl_non_fn_ty(ty: ty::Ty<'tcx>) -> Option<Ty> {
+        match ty.kind {
+            ty::Bool => Some(Ty::Bool),
+            ty::Int(int_ty) => {
+                Some(Ty::Int(int_ty.bit_width().unwrap_or(8 * std::mem::size_of::<isize>())))
+            }
+            ty::Uint(uint_ty) => {
+                Some(Ty::Uint(uint_ty.bit_width().unwrap_or(8 * std::mem::size_of::<usize>())))
+            }
+            _ => None,
+        }
+    }
+
     #[allow(rustc::usage_of_qualified_ty)]
     fn transl_ty(&self, ty: ty::Ty<'tcx>) -> InterpResult<'tcx, Ty> {
         match ty.kind {
-            ty::Bool => Ok(Ty::Bool),
-            ty::Int(int_ty) => {
-                Ok(Ty::Int(int_ty.bit_width().unwrap_or(8 * std::mem::size_of::<isize>())))
-            }
-            ty::Uint(uint_ty) => {
-                Ok(Ty::Uint(uint_ty.bit_width().unwrap_or(8 * std::mem::size_of::<usize>())))
-            }
             ty::FnDef(def_id, _) => self
                 .tcx
                 .optimized_mir(def_id)
@@ -282,7 +299,8 @@ impl<'tcx> Evaluator<'tcx> {
                 .map(|ld| self.transl_ty(&ld.ty))
                 .collect::<InterpResult<'_, Vec<Ty>>>()
                 .map(|args_ty| Ty::Func(args_ty, Vec::new())),
-            _ => Err(err_unsup_format!("Unsupported ty {:?}", ty).into()),
+            _ => Self::transl_non_fn_ty(ty)
+                .ok_or_else(|| err_unsup_format!("Unsupported ty {:?}", ty).into()),
         }
     }
 

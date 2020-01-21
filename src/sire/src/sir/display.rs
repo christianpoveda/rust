@@ -8,8 +8,7 @@ impl fmt::Display for FuncDef {
             }
             _ => unreachable!(),
         };
-
-        write!(f, "(defun {:?}[{}] {} {})", self.def_id, params, self.ty, self.body)
+        write!(f, "(defun {:?}[{}] {} {})", self.func_id, params, self.ty, self.body)
     }
 }
 

@@ -41,8 +41,8 @@ rustc_plugin_impl = { path = "../librustc_plugin_impl" }
 rustc_privacy = { path = "../librustc_privacy" }
 rustc_resolve = { path = "../librustc_resolve" }
 rustc_ty = { path = "../librustc_ty" }
-sire = { path = "../sire/sire" }
-sire-smt = { path = "../sire/sire_smt" }
+sire = { path = "../sire" }
+sire_z3 = { path = "../sire_z3" }
 tempfile = "3.0.5"
 once_cell = "1"
 
