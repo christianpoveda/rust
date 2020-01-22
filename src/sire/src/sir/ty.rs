@@ -59,7 +59,6 @@ impl Typed for Expr {
                 Expr::Tuple(ref fields) => fields.get(*i).unwrap().ty(),
                 _ => unreachable!(),
             },
-            Expr::Assert(_, e1) => e1.ty(),
             Expr::Uninitialized => unreachable!(),
         }
     }

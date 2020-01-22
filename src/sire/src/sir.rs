@@ -59,6 +59,14 @@ impl FuncDef {
             false
         }
     }
+
+    pub fn arity(&self) -> usize {
+        if let Ty::Func(args_ty, params) = &self.ty {
+            args_ty.len() + params.len() - 1
+        } else {
+            unreachable!()
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -86,7 +94,6 @@ pub enum Expr {
     Switch(Box<Expr>, Vec<Expr>, Vec<Expr>),
     Tuple(Vec<Expr>),
     Projection(Box<Expr>, usize),
-    Assert(Box<Expr>, Box<Expr>),
     Uninitialized,
 }
 

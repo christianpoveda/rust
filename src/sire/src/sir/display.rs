@@ -82,7 +82,6 @@ impl fmt::Display for Expr {
                 fields.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(" "),
             ),
             Expr::Projection(e1, i) => write!(f, "(proj {} {})", e1, i),
-            Expr::Assert(e1, e2) => write!(f, "(assert {} {})", e1, e2),
             Expr::Uninitialized => write!(f, "uninitialized"),
         }
     }

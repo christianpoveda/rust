@@ -29,10 +29,6 @@ pub trait Visitor {
         self.super_projection(tuple, index)
     }
 
-    fn visit_assert(&mut self, condition: &Expr, result: &Expr) {
-        self.super_assert(condition, result)
-    }
-
     fn super_expr(&mut self, expr: &Expr) {
         match expr {
             Expr::Value(e) => self.visit_value(e),
@@ -41,7 +37,6 @@ pub trait Visitor {
             Expr::Switch(e1, e2, e3) => self.visit_switch(e1, e2, e3),
             Expr::Tuple(e1) => self.visit_tuple(e1),
             Expr::Projection(e1, index) => self.visit_projection(e1, *index),
-            Expr::Assert(e1, e2) => self.visit_assert(e1, e2),
             Expr::Uninitialized => (),
         }
     }
@@ -80,10 +75,5 @@ pub trait Visitor {
 
     fn super_projection(&mut self, tuple: &Expr, _: usize) {
         self.visit_expr(tuple)
-    }
-
-    fn super_assert(&mut self, condition: &Expr, result: &Expr) {
-        self.visit_expr(condition);
-        self.visit_expr(result);
     }
 }
