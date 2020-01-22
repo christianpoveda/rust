@@ -7,5 +7,5 @@ fn foo<const N: usize>(x: [(); N + N]) -> [(); 2 * N] {
 }
 
 fn main() {
-    let y = foo([(), (), (), ()]);
+    let y = foo::<2>([(), (), (), ()]);
 }

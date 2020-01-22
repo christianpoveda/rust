@@ -685,8 +685,29 @@ pub fn default_provide(providers: &mut ty::query::Providers<'_>) {
     rustc_lint::provide(providers);
     rustc_codegen_utils::provide(providers);
     rustc_codegen_ssa::provide(providers);
-    providers.sire_equality_check = |_tcx, (_a, _b)| {
-        true
+    providers.sire_equality_check = |tcx, (a, b)| {
+        use sire_z3::*;
+        match equality_check(tcx, a, b) {
+            CheckResult::Sat => {
+                info!("sire: Both sides are equal");
+                true
+            }
+            CheckResult::Unsat => {
+                info!("sire: Sides are not equal");
+                false
+            }
+            CheckResult::Undecided => {
+                warn!("sire: Could not decide if sides are equal");
+                false
+            }
+            CheckResult::Unknown(output) => {
+                warn!(
+                    "sire: SMT returned an unknown output {}",
+                    output
+                    );
+                false
+            }
+        }
     };
 }
 
